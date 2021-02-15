@@ -1,0 +1,268 @@
+---
+title: "COVID19 Data Hub, A curated COVID19 R Package"
+subtitle: "BARUG Meeting"
+author: "Eric A. Suess"
+date: "2/12/2021"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## COVID19 Data Hub
+
+Today we will introduce and discuss the [COVID19 Hub](https://covid19datahub.io) an R Package that provides access to current numbers related to COVID19.
+
+The [COVID19 Data Hub](https://covid19datahub.io) tries to provide access to a curated collection of data from as many countries around the world as possible.  It is a open source package that encourages user suggestions and contributions.
+
+    > install.packages("COVID19")
+
+It is one of the 15 "covid" packages that is currently available on CRAN.
+
+```{r}
+library("pkgsearch")
+pkg_search("covid")
+```
+
+## About me
+
+I am a Professor at [CSU East Bay](https://www.csueastbay.edu/index.html) in [Statistics and Biostatistics](https://www.csueastbay.edu/statistics/), jointly appointed in the [Engineering](https://www.csueastbay.edu/engineering/).  I have taught classes in Economics, Marketing, and Analytics for the Business College.  I am 5+ years former Chair, after 3 terms, so 9 years (or 14).
+
+I am the Chief Statistician at [machineVantage](https://machinevantage.com/) an AI and ML Neuroscience Marketing start-up company located in Berkeley, CA, Chennai and Bangalor, India, London, England.  I am a <= 10 hour per week employee.  Apply ML and AI algorithms for clients.
+
+Now I am starting to work on the [COVID19 Data Hub](https://covid19datahub.io) with Emanuele Guidotti and David Ardia.  Emanuele is located in Switzerland and David is located in Montreal.
+
+## Why?
+
+Well at the start of the Covid lockdown I decided *not* to say **No** to any project that came my way.  I am now working on many interesting projects.  This is the one that is likely to influence my teaching the most in terms of technical skills.
+
+Joe asked and I said **Yes**.
+
+I am hoping this effort is beneficial to:
+
+     1. The developers of the package.
+     2. The R community.
+     3. Joe
+     4. My CSU East Bay colleagues, Ayona Chatterjee and Eric Fox.
+     5. My current students who are working on Covid19 data projects.
+     6. Me.  Hopefully I can develop more "developer" skills that I can pass on to my students.
+     
+## COVID19 Data Hub
+
+The CODID19 Data Hub is an R package that pulls data from a curated collection of data [sources](https://github.com/covid19datahub/COVID19/blob/master/inst/extdata/src.csv) that is updated hourly.  The data is downloaded and merged together into one file once an hour and can be access through one function in R (or using other frontends).
+
+    > x_USA <- covid19("USA")
+    > x_USA
+
+The [data](https://covid19datahub.io/articles/data.html) is downloaded from many many data sources by code running on a GCP server in the Cloud.  The data is processed from the various sources to populate [three levels of data](https://covid19datahub.io/articles/doc/data.html).  At the end of each day a vintage dataset is made a available.
+
+As an example, 
+
+- administrative_area_level_1 = *Country* level data, totals for the USA
+- administrative_area_level_2 = *State* level data
+- administrative_area_level_3 = *County* level data
+
+## COVID19 Data Hub
+
+There are so many different sources of COVID19 data.  Every country, every state and every city has its own data.  There are many different government websites, many universities, and many companies.
+
+- [Our World Data](https://ourworldindata.org/covid-vaccinations)
+- [The Covid Tracking Project](https://covidtracking.com)
+- [John Hopkins University](https://github.com/CSSEGISandData/COVID-19)
+- [New York Times](https://github.com/nytimes/covid-19-data)
+
+It is going to be an ongoing challenge to maintain all of the connections to the original sources.  It is already the case that some of the original sources will be ending their efforts soon.
+
+## What can you do with the data?
+
+```{r, echo=TRUE}
+library(pacman)
+p_load(COVID19, tidyverse, fpp3, prophet, naniar)
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_USA <- covid19("USA", verbose = FALSE)
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_USA %>% select(date, deaths) %>% 
+  as_tsibble() %>% 
+  autoplot() +
+  labs(title = "USA Covid19 Deaths")
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_USA %>% select(date, deaths) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  as_tsibble() %>% 
+  tail(10)
+```
+     
+```{r, warnings=FALSE, echo=TRUE}
+x_USA %>% select(date, deaths) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  as_tsibble() %>% 
+  autoplot(daily_deaths) +
+  labs(title = "USA Covid19 Daily Deaths")
+```
+```{r, warnings=FALSE, echo=TRUE}
+x_USA %>% select(date, deaths) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  as_tsibble() %>% 
+  tail(180) %>% 
+  autoplot(daily_deaths) +
+  labs(title = "USA Covid19 Daily Deaths")
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_USA %>% select(date, deaths) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  as_tsibble() %>% 
+  tail(180) %>% 
+  model(classical_decomposition(daily_deaths, type = "multiplicative")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Classical multiplicative decomposition of USA Covid19 Daily Deaths")
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+m <- x_USA %>% select(date, deaths) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  tail(180) %>% 
+  select(date, daily_deaths) %>% 
+  rename(ds = "date", y = "daily_deaths") %>% 
+  prophet(daily.seasonality=TRUE) 
+
+future <- make_future_dataframe(m, periods = 7)
+forecast <- predict(m, future)
+dyplot.prophet(m, forecast)
+
+```
+
+
+
+```{r, warnings=FALSE, echo=TRUE}
+x_USA %>% select(date, deaths) %>% 
+  mutate(daily_deths = deaths - lag(deaths)) %>% 
+  as_tsibble() %>% 
+  ACF(daily_deths) %>% 
+  autoplot() +
+  labs(title = "USA Covid19 Daily Deaths")
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_USA %>% select(date, deaths) %>% 
+  mutate(daily_deths = deaths - lag(deaths)) %>% 
+  as_tsibble() %>% 
+  PACF(daily_deths) %>% 
+  autoplot() +
+  labs(title = "USA Covid19 Daily Deaths")
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_BRA <- covid19("BRA", verbose = FALSE)
+tail(x_BRA, 10)
+
+x_BRA %>% select(date, deaths) %>% 
+  mutate(daily_deths = deaths - lag(deaths)) %>% 
+  as_tsibble() %>% 
+  autoplot(daily_deths) +
+  labs(title = "USA Covid19 Daily Deaths")
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_USA_BRA <- covid19(c("USA","BRA"), verbose = FALSE)
+tail(x_USA_BRA, 10)
+
+x_USA_BRA %>% select(date, deaths) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  as_tsibble(key = id, index = date) %>% 
+  autoplot(daily_deaths) +
+  labs(title = "USA Covid19 Daily Deaths")
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_three <- covid19(c("EST","LTU","LVA"), verbose = FALSE)
+tail(x_three, 10)
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_three %>% select(date, deaths) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  as_tsibble(key = id, index = date) %>% 
+  autoplot(daily_deaths) +
+  labs(title = "Covid19 Daily Deaths")
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_three %>% select(date, deaths) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  as_tsibble(key = id, index = date) %>% 
+  # Currently only supports daily data
+  index_by(date) %>%
+  summarise(weekly_deaths = sum(daily_deaths)) %>%
+  # Compute weekly aggregates
+  fabletools:::aggregate_index("1 week", weekly_deaths = sum(weekly_deaths)) %>% 
+  autoplot(weekly_deaths) +
+  labs(title = "Covid19 Weekly Deaths")
+```
+
+## Completeness of the data
+
+We can do a data availability study.
+
+```{r, warnings=FALSE, echo=TRUE}
+x_three %>% anyNA()
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_three %>% n_miss()
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+x_three %>%  prop_miss()
+```
+
+```{r, warnings=FALSE, echo=TRUE}
+library(visdat)
+
+x_three %>% group_by(id) %>% 
+  vis_miss()
+```
+
+
+## Administrative level 2
+
+```{r, warnings=FALSE, echo=TRUE}
+x_USA_state <- covid19("USA", level = 2)
+
+x_USA_state %>% select(date, administrative_area_level_2, deaths) %>% 
+  filter(date == "2021-02-14") %>% 
+  filter(administrative_area_level_2 %in% c("California", "Oregon", "Washington")) %>% 
+  ggplot(aes(x = administrative_area_level_2, y = deaths)) +
+  geom_bar(stat="identity")
+```
+
+## Administrative level 2
+
+```{r, warnings=FALSE, echo=TRUE, eval=FALSE}
+x_USA_county <- covid19("USA", level = 3)
+
+x_USA_county %>% select(date, administrative_area_level_2, administrative_area_level_3, deaths, vaccines) %>% 
+  filter(date == "2021-02-14") %>% 
+  filter(administrative_area_level_2 %in% c("California")) %>% 
+  filter(administrative_area_level_3 %in% c("Alameda"))
+```
+
+## Getting into the role
+
+- Checking the [Issues](https://github.com/covid19datahub/COVID19/issues) everyday.
+- Trying to continue the development new documentation and examples of the use of the data.
+- Fully understanding the philosophy of the creators of the project.
+- Recruiting others to help out.  Maybe just for motivation.  Please **star** the COVID19 Data Hub Project on Github.
+
+## Please reach out if you have any suggestions.
+
+- On the Project Github Issues page.
+- Or by email.  eric.suess@csueastbay.edu
