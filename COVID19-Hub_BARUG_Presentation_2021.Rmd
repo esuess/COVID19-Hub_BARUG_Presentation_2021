@@ -2,7 +2,7 @@
 title: "COVID19 Data Hub, A curated COVID19 R Package"
 subtitle: "BARUG Meeting"
 author: "Eric A. Suess"
-date: "2/12/2021"
+date: "2/16/2021"
 output: slidy_presentation
 ---
 
@@ -20,22 +20,22 @@ The [COVID19 Data Hub](https://covid19datahub.io) tries to provide access to a c
 
 It is one of the 15 "covid" packages that is currently available on CRAN.
 
-```{r}
-library("pkgsearch")
+```{r, echo=TRUE}
+library(pkgsearch)
 pkg_search("covid")
 ```
 
 ## About me
 
-I am a Professor at [CSU East Bay](https://www.csueastbay.edu/index.html) in [Statistics and Biostatistics](https://www.csueastbay.edu/statistics/), jointly appointed in the [Engineering](https://www.csueastbay.edu/engineering/).  I have taught classes in Economics, Marketing, and Analytics for the Business College.  I am 5+ years former Chair, after 3 terms, so 9 years (or 14).
+I am a Professor at [CSU East Bay](https://www.csueastbay.edu/index.html) in [Statistics and Biostatistics](https://www.csueastbay.edu/statistics/), jointly appointed in the [Engineering](https://www.csueastbay.edu/engineering/).  I have taught classes in Economics, Marketing, and Analytics for the College of Business.  I am 5+ years former Chair, after 3 terms, so 9 years (or 14).
 
-I am the Chief Statistician at [machineVantage](https://machinevantage.com/) an AI and ML Neuroscience Marketing start-up company located in Berkeley, CA, Chennai and Bangalor, India, London, England.  I am a <= 10 hour per week employee.  Apply ML and AI algorithms for clients.
+I am the Chief Statistician at [machineVantage](https://machinevantage.com/) an AI and ML Neuroscience Marketing start-up company located in Berkeley, CA, Chennai and Bangalore, India, London, England.  I am a <= 10 hour per week employee.  Apply ML and AI algorithms for clients.
 
 Now I am starting to work on the [COVID19 Data Hub](https://covid19datahub.io) with Emanuele Guidotti and David Ardia.  Emanuele is located in Switzerland and David is located in Montreal.
 
 ## Why?
 
-Well at the start of the Covid lockdown I decided *not* to say **No** to any project that came my way.  I am now working on many interesting projects.  This is the one that is likely to influence my teaching the most in terms of technical skills.
+Well at the start of the Covid lock-down I decided *not* to say **No** to any project that came my way.  I am now working on many interesting projects.  This is the one that is likely to influence my teaching the most in terms of technical skills.
 
 Joe asked and I said **Yes**.
 
@@ -43,7 +43,7 @@ I am hoping this effort is beneficial to:
 
      1. The developers of the package.
      2. The R community.
-     3. Joe
+     3. The R Consortium Covid19 Working Group.
      4. My CSU East Bay colleagues, Ayona Chatterjee and Eric Fox.
      5. My current students who are working on Covid19 data projects.
      6. Me.  Hopefully I can develop more "developer" skills that I can pass on to my students.
@@ -52,14 +52,15 @@ I am hoping this effort is beneficial to:
 
 The CODID19 Data Hub is an R package that pulls data from a curated collection of data [sources](https://github.com/covid19datahub/COVID19/blob/master/inst/extdata/src.csv) that is updated hourly.  The data is downloaded and merged together into one file once an hour and can be access through one function in R (or using other frontends).
 
+    > library(COVID19)
     > x_USA <- covid19("USA")
     > x_USA
 
 The [data](https://covid19datahub.io/articles/data.html) is downloaded from many many data sources by code running on a GCP server in the Cloud.  The data is processed from the various sources to populate [three levels of data](https://covid19datahub.io/articles/doc/data.html).  At the end of each day a vintage dataset is made a available.
 
-As an example, 
+The levels: 
 
-- administrative_area_level_1 = *Country* level data, totals for the USA
+- administrative_area_level_1 = *Country* level data, totals
 - administrative_area_level_2 = *State* level data
 - administrative_area_level_3 = *County* level data
 
@@ -76,14 +77,22 @@ It is going to be an ongoing challenge to maintain all of the connections to the
 
 ## What can you do with the data?
 
+Below are some examples of the use of some possible uses of the data.  I am currently teaching a Time Series course using the [fpp3](https://otexts.com/fpp3/) book and a graduate Statistical Learning class using the [mdsr2e](https://otexts.com/fpp3/) book.  So the examples that follow use of of the R packages used in these books.
+
+There is also an excellent tutorial posted on Medium's Toward Data Science [COVID-19 Data Acquisition in R](https://towardsdatascience.com/r-interface-to-covid-19-data-hub-244ae056af2c) that give further details on how to extend the dataset in real time.
+
 ```{r, echo=TRUE}
 library(pacman)
-p_load(COVID19, tidyverse, fpp3, prophet, naniar)
+p_load(COVID19, tidyverse, fpp3, naniar)
 ```
+
+Load the country level data for the United States.
 
 ```{r, warnings=FALSE, echo=TRUE}
 x_USA <- covid19("USA", verbose = FALSE)
 ```
+
+Time plot of the cumulative deaths.
 
 ```{r, warnings=FALSE, echo=TRUE}
 x_USA %>% select(date, deaths) %>% 
@@ -92,12 +101,16 @@ x_USA %>% select(date, deaths) %>%
   labs(title = "USA Covid19 Deaths")
 ```
 
+Using the lag() function we can determine daily counts.
+
 ```{r, warnings=FALSE, echo=TRUE}
 x_USA %>% select(date, deaths) %>% 
   mutate(daily_deaths = deaths - lag(deaths)) %>% 
   as_tsibble() %>% 
   tail(10)
 ```
+     
+Plotting the daily counts reveals a weekly seasonal pattern in the time series.
      
 ```{r, warnings=FALSE, echo=TRUE}
 x_USA %>% select(date, deaths) %>% 
@@ -106,6 +119,9 @@ x_USA %>% select(date, deaths) %>%
   autoplot(daily_deaths) +
   labs(title = "USA Covid19 Daily Deaths")
 ```
+
+Looking at the last 6 months.
+
 ```{r, warnings=FALSE, echo=TRUE}
 x_USA %>% select(date, deaths) %>% 
   mutate(daily_deaths = deaths - lag(deaths)) %>% 
@@ -114,6 +130,8 @@ x_USA %>% select(date, deaths) %>%
   autoplot(daily_deaths) +
   labs(title = "USA Covid19 Daily Deaths")
 ```
+
+Trying a multiplicative Classical Decomposition Model to see the Trend and Seasonal components in the time series.
 
 ```{r, warnings=FALSE, echo=TRUE}
 x_USA %>% select(date, deaths) %>% 
@@ -126,49 +144,54 @@ x_USA %>% select(date, deaths) %>%
   labs(title = "Classical multiplicative decomposition of USA Covid19 Daily Deaths")
 ```
 
+Computing some features of the time series.
+
 ```{r, warnings=FALSE, echo=TRUE}
-m <- x_USA %>% select(date, deaths) %>% 
+x_USA %>% select(date, deaths) %>% 
   mutate(daily_deaths = deaths - lag(deaths)) %>% 
+  as_tsibble() %>% 
   tail(180) %>% 
   select(date, daily_deaths) %>% 
-  rename(ds = "date", y = "daily_deaths") %>% 
-  prophet(daily.seasonality=TRUE) 
-
-future <- make_future_dataframe(m, periods = 7)
-forecast <- predict(m, future)
-dyplot.prophet(m, forecast)
-
+  features(daily_deaths, feat_stl)
 ```
 
-
+Autocorrelation plot.  (See Allison Horst's new series on the ACF post on Twitter @allison_horst yesterday. )
 
 ```{r, warnings=FALSE, echo=TRUE}
 x_USA %>% select(date, deaths) %>% 
-  mutate(daily_deths = deaths - lag(deaths)) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
   as_tsibble() %>% 
-  ACF(daily_deths) %>% 
+  ACF(daily_deaths) %>% 
   autoplot() +
   labs(title = "USA Covid19 Daily Deaths")
 ```
 
+PACF
+
 ```{r, warnings=FALSE, echo=TRUE}
 x_USA %>% select(date, deaths) %>% 
-  mutate(daily_deths = deaths - lag(deaths)) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
   as_tsibble() %>% 
-  PACF(daily_deths) %>% 
+  PACF(daily_deaths) %>% 
   autoplot() +
   labs(title = "USA Covid19 Daily Deaths")
 ```
+
+Note: The time series is not stationary, so need to take another difference.
+
+## Comparisons
+
+Brazil
 
 ```{r, warnings=FALSE, echo=TRUE}
 x_BRA <- covid19("BRA", verbose = FALSE)
 tail(x_BRA, 10)
 
 x_BRA %>% select(date, deaths) %>% 
-  mutate(daily_deths = deaths - lag(deaths)) %>% 
+  mutate(daily_deaths = deaths - lag(deaths)) %>% 
   as_tsibble() %>% 
-  autoplot(daily_deths) +
-  labs(title = "USA Covid19 Daily Deaths")
+  autoplot(daily_deaths) +
+  labs(title = "Brazil Covid19 Daily Deaths")
 ```
 
 ```{r, warnings=FALSE, echo=TRUE}
@@ -179,8 +202,10 @@ x_USA_BRA %>% select(date, deaths) %>%
   mutate(daily_deaths = deaths - lag(deaths)) %>% 
   as_tsibble(key = id, index = date) %>% 
   autoplot(daily_deaths) +
-  labs(title = "USA Covid19 Daily Deaths")
+  labs(title = "USA and Brazil Covid19 Daily Deaths")
 ```
+
+Estonia, Lithuania, and Latvia
 
 ```{r, warnings=FALSE, echo=TRUE}
 x_three <- covid19(c("EST","LTU","LVA"), verbose = FALSE)
@@ -194,6 +219,8 @@ x_three %>% select(date, deaths) %>%
   autoplot(daily_deaths) +
   labs(title = "Covid19 Daily Deaths")
 ```
+
+Summarize the data weekly.
 
 ```{r, warnings=FALSE, echo=TRUE}
 x_three %>% select(date, deaths) %>% 
@@ -212,6 +239,8 @@ x_three %>% select(date, deaths) %>%
 
 We can do a data availability study.
 
+Estonia, Lithuania, and Latvia
+
 ```{r, warnings=FALSE, echo=TRUE}
 x_three %>% anyNA()
 ```
@@ -223,6 +252,8 @@ x_three %>% n_miss()
 ```{r, warnings=FALSE, echo=TRUE}
 x_three %>%  prop_miss()
 ```
+
+Visualize the missing values.
 
 ```{r, warnings=FALSE, echo=TRUE}
 library(visdat)
@@ -238,21 +269,23 @@ x_three %>% group_by(id) %>%
 x_USA_state <- covid19("USA", level = 2)
 
 x_USA_state %>% select(date, administrative_area_level_2, deaths) %>% 
-  filter(date == "2021-02-14") %>% 
+  filter(date == "2021-02-15") %>% 
   filter(administrative_area_level_2 %in% c("California", "Oregon", "Washington")) %>% 
   ggplot(aes(x = administrative_area_level_2, y = deaths)) +
   geom_bar(stat="identity")
 ```
 
-## Administrative level 2
+## Administrative level 3
 
-```{r, warnings=FALSE, echo=TRUE, eval=FALSE}
+```{r, warnings=FALSE, echo=TRUE}
 x_USA_county <- covid19("USA", level = 3)
 
 x_USA_county %>% select(date, administrative_area_level_2, administrative_area_level_3, deaths, vaccines) %>% 
-  filter(date == "2021-02-14") %>% 
+  filter(date == "2021-02-15") %>% 
   filter(administrative_area_level_2 %in% c("California")) %>% 
-  filter(administrative_area_level_3 %in% c("Alameda"))
+  filter(administrative_area_level_3 %in% c("Alameda", "Contra Costa", "Santa Clara")) %>% 
+  ggplot(aes(x = administrative_area_level_3, y = deaths)) +
+  geom_bar(stat="identity")
 ```
 
 ## Getting into the role
@@ -261,6 +294,7 @@ x_USA_county %>% select(date, administrative_area_level_2, administrative_area_l
 - Trying to continue the development new documentation and examples of the use of the data.
 - Fully understanding the philosophy of the creators of the project.
 - Recruiting others to help out.  Maybe just for motivation.  Please **star** the COVID19 Data Hub Project on Github.
+- Putting in some hours to complete some of the Open Issues.
 
 ## Please reach out if you have any suggestions.
 
