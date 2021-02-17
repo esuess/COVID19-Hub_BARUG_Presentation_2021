@@ -1,6 +1,6 @@
 ---
 title: "COVID19 Data Hub, A curated COVID19 R Package"
-author: "Eric Suess"
+author: "Eric A. Suess"
 date: "2/16/2021"
 output:
   slidy_presentation: default
