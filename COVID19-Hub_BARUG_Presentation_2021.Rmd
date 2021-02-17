@@ -25,7 +25,7 @@ library(pkgsearch)
 pkg_search("covid")
 ```
 
-## About me
+## About me now
 
 I am a Professor at [CSU East Bay](https://www.csueastbay.edu/index.html) in [Statistics and Biostatistics](https://www.csueastbay.edu/statistics/), jointly appointed in the [Engineering](https://www.csueastbay.edu/engineering/).  I have taught classes in Economics, Marketing, and Analytics for the College of Business.  I am 5+ years former Chair, after 3 terms, so 9 years (or 14).
 
